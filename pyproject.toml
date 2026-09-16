@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rl_project"
+version = "0.1.0"
+description = "Proyecto de RL para Milan Taxi"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "gymnasium[toy-text,mujoco]==1.2.3",
+    "ipython",
+    "ipykernel==7.2.0",
+    "jupyter",
+    "matplotlib==3.10.9",
+    "numpy==2.4.6",
+    "Pillow",
+    "seaborn==0.13.2",
+    "stable-baselines3==2.8.0",
+    "torch==2.12.0",
+    "tqdm==4.67.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
