@@ -17,6 +17,14 @@ class RandomPolicy(Policy):
         return np.random.randint(self.actions_cardinality)
         # ----------------------------------------------------------
 
+class ValueIterationPolicy(Policy):
+    def __init__(self, policy, env):
+        self.policy = policy
+        self.env = env
+ 
+    def get_action(self, state):
+        state_idx = self.env.state_to_idx[state]
+        return np.argmax(self.policy[state_idx])
 
 def rollout(env: gym.Env, policy: RandomPolicy, render=True):
     frames =  []
