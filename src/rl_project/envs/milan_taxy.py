@@ -22,6 +22,9 @@ from io import BytesIO
 from IPython.display import clear_output
 from gymnasium import spaces
 
+# We import the rendering logic and constants from our hidden black box
+from rl_project.utils.taxi_utils import render_taxi, close_taxi_render
+
 SOUTH, NORTH, EAST, WEST, PICKUP, DROPOFF = 0, 1, 2, 3, 4, 5
 
 INTERNAL_WALLS = [
@@ -50,6 +53,8 @@ class MilanTaxiEnv(gym.Env):
         self.rows = rows
         self.cols = cols
         self.max_steps = max_steps
+        self.p = p
+        self.START = None  # Se inicializa en reset() para que sea aleatorio
 
         # Mapeo explicito de tupla -> índice y viceversa para vectorizar Bellman
         self.all_states: list[tuple[int, int, int, int]] = [
@@ -82,7 +87,8 @@ class MilanTaxiEnv(gym.Env):
         # ----------------------------------------------------------
 
         self.state = (taxi_row, taxi_col, pass_idx, dest_idx)
-
+        self.START = np.ravel_multi_index(self.state, (self.rows, self.cols, 5, 4))
+        
         return self.state, {}
 
     def step(self, action):
@@ -115,6 +121,13 @@ class MilanTaxiEnv(gym.Env):
 
         self.state = (new_row, new_col, new_pass_idx, new_dest_idx)
 
+        # if self.time_step == self.max_steps // 2:
+        #     if self._delivered_passengers >= 1:
+        #         reward += 100 #Si el taxi ha entregado al menos un pasajero a la mitad del tiempo, se le da una recompensa adicional de 100
+        #     else:
+        #         reward -= 1000 #Si el taxi no ha entregado ningún pasajero a la mitad del tiempo, se le da una penalización de 100
+        #     truncated = True
+
         return self.state, reward, False, truncated, {"delivered_passengers": self._delivered_passengers}
 
     def _spawn_new_passenger(self):
@@ -134,6 +147,10 @@ class MilanTaxiEnv(gym.Env):
         Returns the reward -1 if the taxi moves to a new position, -10 if the taxi tries to pick up or drop off a passenger in the wrong location, 
         and +20 if the taxi successfully drops off a passenger at their destination.
         """
+        # 1. Distancia actual antes de mover el taxi
+        row_persona, col_persona = LOCS[pass_idx] if pass_idx != PASS_IN_TAXI else LOCS[dest_idx]
+        dist_actual = abs(row - row_persona) + abs(col - col_persona)
+        nueva_dist = dist_actual
         new_row, new_col = row, col
         new_pass_idx = pass_idx
         dest_reached = False
@@ -144,15 +161,24 @@ class MilanTaxiEnv(gym.Env):
         if action == NORTH:
             target_row = max(0, row - 1)
             new_row = target_row if check_wall(row, col, target_row, col) == False else row
+            # 3. Nueva distancia tras el movimiento
+            nueva_dist = abs(new_row - row_persona) + abs(new_col - col_persona)
         elif action == SOUTH:
             target_row = min(self.rows - 1, row + 1)
             new_row = target_row if check_wall(row, col, target_row, col) == False else row
+            nueva_dist = abs(new_row - row_persona) + abs(new_col - col_persona)
         elif action == EAST:
             target_col = min(self.cols - 1, col + 1)
             new_col = target_col if check_wall(row, col, row, target_col) == False else col
+            nueva_dist = abs(new_row - row_persona) + abs(new_col - col_persona)
         elif action == WEST:
             target_col = max(0, col - 1)
             new_col = target_col if check_wall(row, col, row, target_col) == False else col
+            nueva_dist = abs(new_row - row_persona) + abs(new_col - col_persona)
+        elif nueva_dist < dist_actual:
+            reward += 5
+        elif nueva_dist > dist_actual:
+            reward -= 5
         elif action == PICKUP:
             if pass_idx != PASS_IN_TAXI and (row, col) == LOCS[pass_idx]:
                 new_pass_idx = PASS_IN_TAXI
