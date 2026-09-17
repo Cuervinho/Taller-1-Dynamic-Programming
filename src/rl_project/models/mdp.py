@@ -1,4 +1,5 @@
 from rl_project.envs.milan_taxy import MilanTaxiEnv
+import numpy as np
 
 class MDP:
     def __init__(self, rows: int = 6, cols: int = 6, p: float = 0.2):
@@ -9,18 +10,21 @@ class MDP:
         self.p = p
         # self.P es un diccionario que mapea (state, action) a una lista de (probability, next_state, reward, terminated)
         self.P = {}
+        self.R = {}
         self.build_transition_matrix_P()
 
     def build_transition_matrix_P(self):
         for s, state in enumerate(self.env.all_states):
             row, col, pass_id, dest_id = state
             self.P[s] = {a: [] for a in range(self.num_actions)}
-
+            self.R[s] = {}
+            self.R[s] = {a: 0 for a in range(self.num_actions)}
             for a in range(self.num_actions):
                 # Transición terminal: el pasajero esta en el taxi y se encuentra en el destino
                 # La recompensa es 0 o 20 en este caso?
                 if pass_id == dest_id:
                     self.P[s][a].append((1.0, s, 0, True))
+                    self.R[s][a] = 0   
                     continue
                 if a < 4:  # Movimiento
                     self.movement_transition(s, row, col, pass_id, dest_id, a)
@@ -28,7 +32,7 @@ class MDP:
                     new_row, new_col, new_pass_idx, dest_idx, reward, dest_reached = self.env._transitions(row, col, pass_id, dest_id, a)
                     next_state = self.env.state_to_idx[(new_row, new_col, new_pass_idx, dest_idx)]
                     self.P[s][a].append((1.0, next_state, reward, dest_reached))
-
+                    self.R[s][a] = reward
 
     def movement_transition(self, s, row, col, pass_id, dest_id, action):
         matrix_transition = {}
@@ -51,17 +55,17 @@ class MDP:
 
 
 
-def build_model(env, cliff_terminates=True):
+def build_model(self, terminated=True):
     """Return (P, R) with an absorbing state at index env.nS."""
-    nS, nA = env.nS, env.nA
+    nS, nA = self.num_states, self.num_actions
     N = nS + 1
     P = np.zeros((N, nA, N))
     R = np.zeros((N, nA))
 
     for s in range(nS):
         for a in range(nA):
-            for prob, s2, r, done in env.P[s][a]:
-                if cliff_terminates and r == -100:
+            for prob, s2, r, done in self.P[s][a]:
+                if terminated and r == -100:
                     done = True
                 # Your code goes here: -------------------------------------
                 next_state = nS if done else s2
