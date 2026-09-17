@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 import gymnasium as gym
 import numpy as np
+
 class Policy(ABC):
     @abstractmethod
     def get_action(self, state):
@@ -53,3 +54,30 @@ def rollout(env: gym.Env, policy: RandomPolicy, render=True):
         return frames, states, actions, rewards
     else:
         return states, actions, rewards
+
+def policy_matrices(P, R, pi):
+    """Average the dynamics over the policy: returns (P_pi, R_pi)."""
+    # Your code goes here: -------------------------------------
+    P_pi = np.einsum('sa,sat->st', pi, P)
+    R_pi = np.einsum('sa,sa->s', pi, R)
+    return P_pi, R_pi
+    # ----------------------------------------------------------
+
+def q_from_v(P, R, V, gamma):
+    """One-step lookahead: Q[s, a] from V."""
+    # Your code goes here: -------------------------------------
+    Q = R + gamma * P @ V
+    return Q
+    # ----------------------------------------------------------
+
+
+def greedy_policy(Q):
+    """Deterministic greedy policy, as a one-hot matrix."""
+    # Your code goes here: -------------------------------------
+    pi = np.zeros_like(Q)
+    best_actions = np.argmax(Q, axis=1)
+    pi[np.arange(Q.shape[0]), best_actions] = 1.0
+    return pi
+    # ----------------------------------------------------------
+
+
