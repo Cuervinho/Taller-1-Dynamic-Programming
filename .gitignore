@@ -21,3 +21,8 @@ venv.bak/
 
 # macOS (just in case)
 .DS_Store
+src/rl_project.egg-info/dependency_links.txt
+src/rl_project.egg-info/PKG-INFO
+src/rl_project.egg-info/requires.txt
+src/rl_project.egg-info/SOURCES.txt
+src/rl_project.egg-info/top_level.txt
