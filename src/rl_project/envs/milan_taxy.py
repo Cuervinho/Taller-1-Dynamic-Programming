@@ -52,7 +52,7 @@ class MilanTaxiEnv(gym.Env):
         self.max_steps = max_steps
 
         # Mapeo explicito de tupla -> índice y viceversa para vectorizar Bellman
-        self.all_states: List[Tuple[int, int, int, int]] = [
+        self.all_states: list[tuple[int, int, int, int]] = [
             (r, c, p, d)
             for r in range(self.rows)
             for c in range(self.cols)
@@ -60,7 +60,7 @@ class MilanTaxiEnv(gym.Env):
             for d in range(4)  # 0-3: destino
         ]
         # Estados van desde 0 hasta N-1, donde N = rows * cols * 5 * 4
-        self.state_to_idx: Dict[Tuple[int, int, int, int], int] = {
+        self.state_to_idx: dict[tuple[int, int, int, int], int] = {
             s: idx for idx, s in enumerate(self.all_states)
         }
 
@@ -68,7 +68,7 @@ class MilanTaxiEnv(gym.Env):
         self.observation_space = spaces.Discrete(self.num_states)
         self.action_space = spaces.Discrete(6)
 
-        self.state: Optional[Tuple[int, int, int, int]] = None
+        self.state: tuple[int, int, int, int] = None
 
     def reset(self):
         self._delivered_passengers = 0
@@ -86,6 +86,13 @@ class MilanTaxiEnv(gym.Env):
         return self.state, {}
 
     def step(self, action):
+        """
+        Args:
+            action (int): The action to take (0: SOUTH, 1: NORTH, 2: EAST, 3: WEST, 4: PICKUP, 5: DROPOFF)
+        Returns:
+            tuple: The new state, reward, terminated, truncated, and info
+        terminated is False porque siempre aparece un nuevo pasajero que llevar
+        """
         row, col, pass_idx, dest_idx = self.state
 
         actual_action = action
@@ -116,6 +123,14 @@ class MilanTaxiEnv(gym.Env):
 
     def _transitions(self, row, col, pass_idx, dest_idx, action):
         """
+        Args:
+            row (int): The current row of the taxi  
+            col (int): The current column of the taxi
+            pass_idx (int): The index of the passenger's pickup location (0-3) or PASS_IN_TAXI (4) if the passenger is in the taxi
+            dest_idx (int): The index of the passenger's destination location (0-3)
+            action (int): The action to take (0: SOUTH, 1: NORTH, 2: EAST, 3: WEST, 4: PICKUP, 5: DROPOFF)
+        Returns:
+            tuple: The new row, new column, new passenger index, new destination index, reward, and whether the destination was reached
         Returns the reward -1 if the taxi moves to a new position, -10 if the taxi tries to pick up or drop off a passenger in the wrong location, 
         and +20 if the taxi successfully drops off a passenger at their destination.
         """
